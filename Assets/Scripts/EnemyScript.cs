@@ -7,6 +7,7 @@ public class EnemyScript : MonoBehaviour
     public Transform player; // Reference to the player
     public LayerMask whatIsGround, whatIsPlayer;
     public GameObject projectile;
+    public GameObject bloodEffectPrefab; // Reference to the blood effect prefab
 
     // Health and Damage
     public int maxHealth = 100;
@@ -160,10 +161,16 @@ public class EnemyScript : MonoBehaviour
         // Face the player
         transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
 
+        // Trigger the blood effect at the player's position
+        Vector3 bloodEffectPosition = player.position + Vector3.up * 1.5f; // Adjust height as needed
+        GameObject bloodEffect = Instantiate(bloodEffectPrefab, bloodEffectPosition, Quaternion.identity);
+
+        // Destroy the blood effect after it plays
+        Destroy(bloodEffect, 2.0f); // Adjust lifespan to match particle effect duration
+
         // Attack logic
         if (!alreadyAttacked)
         {
-            // Placeholder for actual attack mechanics (e.g., projectile, melee)
             alreadyAttacked = true;
 
             // Trigger the attack and reset after the cooldown
