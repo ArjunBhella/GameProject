@@ -5,12 +5,12 @@ using UnityEngine.SceneManagement;
 
 public class CharacterMovement : MonoBehaviour
 {
-    public Transform cameraTransform;
+    public Transform cameraTransform; 
 
     public ParticleSystem leftPunchEffect;
     public ParticleSystem rightPunchEffect;
     public AudioSource audioSource;
-    public AudioClip punchSound;
+    public AudioClip punchSound; 
     public AudioClip damageSound;
     public AudioClip specialAttackSound;
     Vector3 playerVelocity;
@@ -44,17 +44,16 @@ public class CharacterMovement : MonoBehaviour
     private float dashTimeRemaining;
     private float dashCooldownRemaining;
 
-    public Collider leftHandCollider;
+      public Collider leftHandCollider;
     public Collider rightHandCollider;
+    
 
-
-    public bool canUseSpecial = true;
-    private float specialAttackCooldown = 60f;
+    public bool canUseSpecial = true; 
+    private float specialAttackCooldown = 60f; 
     public float specialAttackTimer = 0;
 
     public int punchDamage = 20;
-    public int specialAttackDamage = 50;
-
+     public int specialAttackDamage = 50;
 
     private void Start()
     {
@@ -67,13 +66,13 @@ public class CharacterMovement : MonoBehaviour
         leftHandCollider.enabled = false;
         rightHandCollider.enabled = false;
 
-        if (audioSource == null)
+         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();
         }
     }
 
-    void PlayPunchSound()
+     void PlayPunchSound()
     {
         if (audioSource != null && punchSound != null)
         {
@@ -114,40 +113,40 @@ public class CharacterMovement : MonoBehaviour
         canDoubleJump = false;
     }
 
-    private void ProcessInput()
+private void ProcessInput()
+{
+    if (Input.GetKeyDown(KeyCode.R) && canUseSpecial)
     {
-        if (Input.GetKeyDown(KeyCode.R) && canUseSpecial)
+        PerformSpecialAttack();
+    }
+}
+private void PerformSpecialAttack()
+{
+    if (Input.GetKeyDown(KeyCode.R) && canUseSpecial)
+    {
+        Debug.Log("Special Attack Triggered!");
+        animator.SetTrigger("BlackFlash"); // Trigger the special attack animation
+
+        
+        canUseSpecial = false;
+        specialAttackTimer = specialAttackCooldown;
+
+        
+        if (audioSource != null && specialAttackSound != null)
         {
-            PerformSpecialAttack();
+            audioSource.PlayOneShot(specialAttackSound);
         }
     }
-    private void PerformSpecialAttack()
+    else
     {
-        if (Input.GetKeyDown(KeyCode.R) && canUseSpecial)
-        {
-            Debug.Log("Special Attack Triggered!");
-            animator.SetTrigger("BlackFlash"); // Trigger the special attack animation
-
-
-            canUseSpecial = false;
-            specialAttackTimer = specialAttackCooldown;
-
-
-            if (audioSource != null && specialAttackSound != null)
-            {
-                audioSource.PlayOneShot(specialAttackSound);
-            }
-        }
-        else
-        {
-            Debug.Log("Special attack not ready or key not pressed.");
-        }
-        animator.ResetTrigger("BlackFlash");
+        Debug.Log("Special attack not ready or key not pressed.");
     }
+    animator.ResetTrigger("BlackFlash");
+}
 
 
 
-    private void UpdateCooldowns()
+   private void UpdateCooldowns()
     {
         if (!canUseSpecial)
         {
@@ -162,86 +161,86 @@ public class CharacterMovement : MonoBehaviour
         if (dashCooldownRemaining > 0)
             dashCooldownRemaining -= Time.deltaTime;
     }
-    void ProcessMovement()
+void ProcessMovement()
+{
+   
+    float horizontal = Input.GetAxis("Horizontal");
+    float vertical = Input.GetAxis("Vertical");
+
+   
+    Vector3 forward = cameraTransform.forward;
+    Vector3 right = cameraTransform.right;
+
+   
+    forward.y = 0f;
+    right.y = 0f;
+
+    
+    forward.Normalize();
+    right.Normalize();
+
+    
+    move = forward * vertical + right * horizontal;
+
+
+    if (move != Vector3.zero)
     {
+        gameObject.transform.forward = move; 
+    }
 
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
+   
+    isRunning = Input.GetButton("Run");
 
+   
+    float speed = isRunning ? runSpeed : walkSpeed;
+    controller.Move(move * Time.deltaTime * speed);
 
-        Vector3 forward = cameraTransform.forward;
-        Vector3 right = cameraTransform.right;
-
-
-        forward.y = 0f;
-        right.y = 0f;
-
-
-        forward.Normalize();
-        right.Normalize();
-
-
-        move = forward * vertical + right * horizontal;
-
-
-        if (move != Vector3.zero)
+   
+    if (Input.GetButtonDown("Jump"))
+    {
+        if (isGrounded)
         {
-            gameObject.transform.forward = move;
+            playerVelocity.y += Mathf.Sqrt(jumpHeight * -2.0f * gravity);
         }
-
-
-        isRunning = Input.GetButton("Run");
-
-
-        float speed = isRunning ? runSpeed : walkSpeed;
-        controller.Move(move * Time.deltaTime * speed);
-
-
-        if (Input.GetButtonDown("Jump"))
+        else if (canDoubleJump && !doubleJump)
         {
-            if (isGrounded)
-            {
-                playerVelocity.y += Mathf.Sqrt(jumpHeight * -2.0f * gravity);
-            }
-            else if (canDoubleJump && !doubleJump)
-            {
-                playerVelocity.y += Mathf.Sqrt(jumpHeight * -2.0f * gravity);
-                doubleJump = true;
-            }
-        }
-
-
-        if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldownRemaining <= 0f && !isDashing)
-        {
-            isDashing = true;
-            dashTimeRemaining = dashDuration;
-            dashCooldownRemaining = dashCooldown;
-        }
-
-        if (isDashing)
-        {
-            dashTimeRemaining -= Time.deltaTime;
-            controller.Move(move * Time.deltaTime * dashSpeed);
-
-            if (dashTimeRemaining <= 0f)
-            {
-                isDashing = false;
-            }
-        }
-
-
-        playerVelocity.y += gravity * Time.deltaTime;
-
-
-        controller.Move(playerVelocity * Time.deltaTime);
-
-
-        if (controller.isGrounded)
-        {
-            playerVelocity.y = -1.0f;
-            doubleJump = false;
+            playerVelocity.y += Mathf.Sqrt(jumpHeight * -2.0f * gravity);
+            doubleJump = true;
         }
     }
+
+    
+    if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldownRemaining <= 0f && !isDashing)
+    {
+        isDashing = true;
+        dashTimeRemaining = dashDuration;
+        dashCooldownRemaining = dashCooldown;
+    }
+
+    if (isDashing)
+    {
+        dashTimeRemaining -= Time.deltaTime;
+        controller.Move(move * Time.deltaTime * dashSpeed);
+
+        if (dashTimeRemaining <= 0f)
+        {
+            isDashing = false;
+        }
+    }
+
+   
+    playerVelocity.y += gravity * Time.deltaTime;
+
+   
+    controller.Move(playerVelocity * Time.deltaTime);
+
+   
+    if (controller.isGrounded)
+    {
+        playerVelocity.y = -1.0f;
+        doubleJump = false;
+    }
+}
 
 
     void OnTriggerEnter(Collider other)
@@ -262,15 +261,9 @@ public class CharacterMovement : MonoBehaviour
             GameManager.Instance.StoreScore();
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
         }
-
-        // Check if the character is hit by a boulder
-        if (other.CompareTag("Boulder"))
-        {
-            TriggerStagger();
-        }
-
+  
     }
-
+    
 
     void OnClick()
     {
@@ -284,20 +277,20 @@ public class CharacterMovement : MonoBehaviour
             case 1:
                 animator.SetTrigger("CrossPunch");
                 PlayLeftPunchEffect();
-
+                
                 break;
             case 2:
                 animator.SetTrigger("Hook");
-                PlayRightPunchEffect();
+               PlayRightPunchEffect();
                 break;
             case 3:
                 animator.SetTrigger("Punching");
-                PlayLeftPunchEffect();
+                 PlayLeftPunchEffect();
                 break;
             case 4:
                 animator.SetTrigger("QuadPunch");
                 PlayRightPunchEffect();
-                noOfClicks = 0;
+                noOfClicks = 0; 
                 break;
         }
     }
@@ -318,7 +311,6 @@ public class CharacterMovement : MonoBehaviour
         }
     }
 
-<<<<<<< Updated upstream
     // void OnCollisionEnter(Collision collision)
     // {
     //     if (collision.gameObject.CompareTag("Enemy"))
@@ -326,25 +318,14 @@ public class CharacterMovement : MonoBehaviour
     //        TakeDamage(5);
     //     }
     // }
-=======
-    void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Enemy"))
-        {
-            TakeDamage(5);
-            TriggerStagger();
-
-        }
-    }
->>>>>>> Stashed changes
 
     public void TakeDamage(int damageAmount)
     {
         GameManager.Instance.currentHealth -= damageAmount;
-        if (audioSource != null && damageSound != null)
-        {
-            audioSource.PlayOneShot(damageSound);
-        }
+         if (audioSource != null && damageSound != null)
+    {
+        audioSource.PlayOneShot(damageSound);
+    }
         if (GameManager.Instance.currentHealth <= 0)
         {
             // SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
@@ -417,49 +398,4 @@ public class CharacterMovement : MonoBehaviour
             return 0f;
         }
     }
-
-    public void ApplyKnockUp(float height)
-    {
-        // Ensure the knock-up only affects Y-axis velocity
-        playerVelocity.y = Mathf.Sqrt(height * -2f * gravity);
-        controller.Move(playerVelocity * Time.deltaTime);
-    }
-
-    public void ApplyPush(Vector3 direction, float force)
-    {
-        // Apply the pushback force in the specified direction
-        Vector3 pushVelocity = direction.normalized * force;
-        pushVelocity.y = Mathf.Sqrt(force * -2f * gravity); // Add upward force for a slight lift
-
-        // Apply push force over a short duration
-        StartCoroutine(ApplyPushCoroutine(pushVelocity));
-    }
-
-    private IEnumerator ApplyPushCoroutine(Vector3 pushVelocity)
-    {
-        float pushDuration = 0.2f; // Time over which the push is applied
-        float elapsed = 0f;
-
-        while (elapsed < pushDuration)
-        {
-            controller.Move(pushVelocity * Time.deltaTime);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        // Reset velocity after push is completed
-        playerVelocity = Vector3.zero;
-    }
-
-    // Method to trigger the Stagger animation
-    void TriggerStagger()
-    {
-        // Trigger the Stagger animation
-        animator.SetTrigger("Stagger");
-
-        // Optional: Add any additional effects or logic (e.g., reduce health)
-        Debug.Log("Character staggered by a boulder!");
-    }
-
 }
-
