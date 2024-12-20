@@ -17,12 +17,18 @@ public class EnemyScript : MonoBehaviour
     public float dropForce = 5f;
 
     // Movement and Attacking
-    public float timeBetweenAttacks = 1.5f;
+    public float timeBetweenAttacks = 0.5f;
     public float speed = 3.0f; // Movement speed
     public float stopDistance = 4.0f; // Stopping distance from the player
     public float attackDistance = 2.0f; // Distance to start attacking the player
+    public float detectionDistance = 20.0f; // Distance to detect the player
+    public float patrolSpeed = 1.5f; // Speed while patrolling
+    public float patrolTime = 3.0f; // Time for each patrol action
 
     private bool alreadyAttacked;
+    private bool isPatrolling = true;
+    private float patrolTimer;
+    private Vector3 patrolTarget;
 
     // Animation
     private Animator animator;
@@ -38,6 +44,10 @@ public class EnemyScript : MonoBehaviour
 
         // Freeze rotation to prevent spinning due to physics forces
         rb.freezeRotation = true;
+
+        // Initialize patrol timer
+        patrolTimer = patrolTime;
+        SetRandomPatrolTarget();
     }
 
     private void Update()
@@ -47,15 +57,68 @@ public class EnemyScript : MonoBehaviour
         // Calculate distance to the player
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        // Handle behavior based on distance
-        if (distanceToPlayer <= attackDistance)
+        if (distanceToPlayer <= detectionDistance)
         {
-            AttackPlayer(); // Play attack animation and handle attacking
+            // Player detected, stop patrolling and chase the player
+            isPatrolling = false;
+            if (distanceToPlayer <= attackDistance)
+            {
+                AttackPlayer(); // Attack logic if within attack range
+            }
+            else
+            {
+                FollowPlayerBehavior(distanceToPlayer); // Chase player
+            }
         }
         else
         {
-            FollowPlayerBehavior(distanceToPlayer); // Move towards the player if not in attack range
+            // Player not detected, patrol
+            if (!isPatrolling)
+            {
+                isPatrolling = true; // Start patrolling again
+                animator.SetBool("isRunning", false);
+                animator.SetBool("isAttacking", false);
+            }
+            Patrol();
         }
+    }
+
+    private void Patrol()
+    {
+        if (patrolTimer <= 0)
+        {
+            // Set a new random patrol target and reset the timer
+            SetRandomPatrolTarget();
+            patrolTimer = patrolTime;
+        }
+        else
+        {
+            patrolTimer -= Time.deltaTime;
+
+            // Move towards the patrol target
+            Vector3 direction = (patrolTarget - transform.position).normalized;
+            transform.position += direction * patrolSpeed * Time.deltaTime;
+
+            // Face the patrol target
+            transform.LookAt(new Vector3(patrolTarget.x, transform.position.y, patrolTarget.z));
+
+            // Play walking animation
+            animator.SetBool("isRunning", true);
+            animator.SetBool("isAttacking", false);
+
+            // Check if close enough to the target to stop moving
+            if (Vector3.Distance(transform.position, patrolTarget) < 1.0f)
+            {
+                patrolTimer = 0; // Force a new patrol target on the next update
+            }
+        }
+    }
+
+    private void SetRandomPatrolTarget()
+    {
+        // Choose a random direction and distance for patrol
+        Vector3 randomDirection = new Vector3(Random.Range(-10, 10), 0, Random.Range(-10, 10)).normalized;
+        patrolTarget = transform.position + randomDirection * Random.Range(5, 10); // Random distance between 5 and 10 units
     }
 
     private void FollowPlayerBehavior(float distanceToPlayer)
@@ -118,23 +181,6 @@ public class EnemyScript : MonoBehaviour
 
         // Reset attack flag to allow the next attack
         alreadyAttacked = false;
-    }
-
-    private void ResetAttack()
-    {
-        alreadyAttacked = false;
-    }
-
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            var playerMovement = collision.gameObject.GetComponent<CharacterMovement>();
-            if (playerMovement != null)
-            {
-                playerMovement.TakeDamage(attackDamage);
-            }
-        }
     }
 
     public void TakeDamage(int damageAmount)
